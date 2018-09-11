@@ -72,7 +72,7 @@ const mainWindow = new BrowserWindow({
     nativeWindowOpen: true
   }
 })
-mainWindow.webContents.on('new-window', (event, url, frameName, disposition, options, additionalFeatures) => {
+mainWindow.webContents.on('new-window', (event, url, frameName, disposition, options, additionalFeatures, body) => {
   if (frameName === 'modal') {
     // open window as modal
     event.preventDefault()

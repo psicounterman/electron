@@ -526,7 +526,8 @@ void WebContents::OnCreateWindow(
     Emit("-new-window", target_url, frame_name, disposition, features, body,
          referrer);
   else
-    Emit("new-window", target_url, frame_name, disposition, features);
+    Emit("new-window", target_url, frame_name, disposition, features, body,
+         referrer);
 }
 
 void WebContents::WebContentsCreated(content::WebContents* source_contents,
