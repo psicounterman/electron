@@ -328,7 +328,7 @@ describe('chromium feature', () => {
           w.show()
         }
 
-        w.webContents.once('new-window', (e, url, frameName, disposition, options) => {
+        w.webContents.once('new-window', (e, url, frameName, disposition, options, additionalFeatures, referrer, postData) => {
           assert.equal(options.show, w.isVisible())
           w.close()
           done()
@@ -455,7 +455,7 @@ describe('chromium feature', () => {
     it('handles cycles when merging the parent options into the child options', (done) => {
       w = BrowserWindow.fromId(ipcRenderer.sendSync('create-window-with-options-cycle'))
       w.loadFile(path.join(fixtures, 'pages', 'window-open.html'))
-      w.webContents.once('new-window', (event, url, frameName, disposition, options) => {
+      w.webContents.once('new-window', (event, url, frameName, disposition, options, additionalFeatures, referrer, postData) => {
         assert.equal(options.show, false)
         assert.deepEqual(options.foo, {
           bar: null,

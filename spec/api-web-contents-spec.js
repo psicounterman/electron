@@ -747,7 +747,7 @@ describe('webContents module', () => {
       server.listen(0, '127.0.0.1', () => {
         const url = 'http://127.0.0.1:' + server.address().port + '/'
         w.webContents.once('did-finish-load', () => {
-          w.webContents.once('new-window', (event, newUrl, frameName, disposition, options, features, referrer) => {
+          w.webContents.once('new-window', (event, newUrl, frameName, disposition, options, features, body, referrer) => {
             assert.equal(referrer.url, url)
             assert.equal(referrer.policy, 'no-referrer-when-downgrade')
           })
@@ -759,7 +759,7 @@ describe('webContents module', () => {
 
     // TODO(jeremy): window.open() in a real browser passes the referrer, but
     // our hacked-up window.open() shim doesn't. It should.
-    xit('propagates referrer information to windows opened with window.open', (done) => {
+    it('propagates referrer information to windows opened with window.open', (done) => {
       const server = http.createServer((req, res) => {
         if (req.url === '/should_have_referrer') {
           assert.equal(req.headers.referer, 'http://127.0.0.1:' + server.address().port + '/')
@@ -770,7 +770,7 @@ describe('webContents module', () => {
       server.listen(0, '127.0.0.1', () => {
         const url = 'http://127.0.0.1:' + server.address().port + '/'
         w.webContents.once('did-finish-load', () => {
-          w.webContents.once('new-window', (event, newUrl, frameName, disposition, options, features, referrer) => {
+          w.webContents.once('new-window', (event, newUrl, frameName, disposition, options, features, body, referrer) => {
             assert.equal(referrer.url, url)
             assert.equal(referrer.policy, 'no-referrer-when-downgrade')
           })
