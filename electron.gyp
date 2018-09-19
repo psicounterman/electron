@@ -4,7 +4,7 @@
     'product_name%': 'Electron',
     'company_name%': 'GitHub, Inc',
     'company_abbr%': 'github',
-    'version%': '3.0.0-beta.10',
+    'version%': '3.0.0',
     'js2c_input_dir': '<(SHARED_INTERMEDIATE_DIR)/js2c',
   },
   'includes': [
@@ -288,6 +288,9 @@
 
         # Enables SkBitmap size 64 operations
         'SK_SUPPORT_LEGACY_SAFESIZE64',
+
+        # Enables flash support
+        'ENABLE_PEPPER_FLASH',
 
         # Enables widevine cdm support
         'WIDEVINE_CDM_AVAILABLE',
