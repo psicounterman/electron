@@ -517,7 +517,7 @@ void WebContents::OnCreateWindow(
   if (type_ == BROWSER_WINDOW || type_ == OFF_SCREEN)
     Emit("-new-window", target_url, frame_name, disposition, features, body);
   else
-    Emit("new-window", target_url, frame_name, disposition, features);
+    Emit("new-window", target_url, frame_name, disposition, features, body);
 }
 
 void WebContents::WebContentsCreated(
