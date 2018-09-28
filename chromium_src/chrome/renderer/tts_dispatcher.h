@@ -9,8 +9,8 @@
 
 #include "base/containers/hash_tables.h"
 #include "content/public/renderer/render_thread_observer.h"
-#include "third_party/WebKit/public/platform/WebSpeechSynthesizer.h"
-#include "third_party/WebKit/public/platform/WebSpeechSynthesizerClient.h"
+#include "third_party/blink/public/platform/web_speech_synthesizer.h"
+#include "third_party/blink/public/platform/web_speech_synthesizer_client.h"
 
 namespace IPC {
 class Message;
@@ -37,8 +37,7 @@ class TtsDispatcher : public blink::WebSpeechSynthesizer,
 
   // blink::WebSpeechSynthesizer implementation.
   void UpdateVoiceList() override;
-  void Speak(const blink::WebSpeechSynthesisUtterance& utterance)
-      override;
+  void Speak(const blink::WebSpeechSynthesisUtterance& utterance) override;
   void Pause() override;
   void Resume() override;
   void Cancel() override;

@@ -4,6 +4,7 @@
 
 #include "atom/browser/atom_permission_manager.h"
 
+#include <memory>
 #include <vector>
 
 #include "atom/browser/atom_browser_client.h"
@@ -240,6 +241,14 @@ bool AtomPermissionManager::CheckPermissionWithDetails(
       content::WebContents::FromRenderFrameHost(render_frame_host);
   return check_handler_.Run(web_contents, permission, requesting_origin,
                             *details);
+}
+
+blink::mojom::PermissionStatus
+AtomPermissionManager::GetPermissionStatusForFrame(
+    content::PermissionType permission,
+    content::RenderFrameHost* render_frame_host,
+    const GURL& requesting_origin) {
+  return blink::mojom::PermissionStatus::GRANTED;
 }
 
 }  // namespace atom

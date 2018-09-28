@@ -11,12 +11,15 @@
 #include "atom/common/api/locker.h"
 #include "atom/common/atom_version.h"
 #include "atom/common/chrome_version.h"
+#include "atom/common/heap_snapshot.h"
+#include "atom/common/native_mate_converters/file_path_converter.h"
 #include "atom/common/native_mate_converters/string16_converter.h"
 #include "atom/common/node_includes.h"
 #include "base/logging.h"
 #include "base/process/process_info.h"
 #include "base/process/process_metrics_iocounters.h"
 #include "base/sys_info.h"
+#include "base/threading/thread_restrictions.h"
 #include "native_mate/dictionary.h"
 
 namespace atom {
@@ -55,12 +58,12 @@ void AtomBindings::BindTo(v8::Isolate* isolate, v8::Local<v8::Object> process) {
   dict.SetMethod("hang", &Hang);
   dict.SetMethod("log", &Log);
   dict.SetMethod("getHeapStatistics", &GetHeapStatistics);
-  dict.SetMethod("getProcessMemoryInfo", &GetProcessMemoryInfo);
   dict.SetMethod("getCreationTime", &GetCreationTime);
   dict.SetMethod("getSystemMemoryInfo", &GetSystemMemoryInfo);
   dict.SetMethod("getCPUUsage", base::Bind(&AtomBindings::GetCPUUsage,
                                            base::Unretained(metrics_.get())));
   dict.SetMethod("getIOCounters", &GetIOCounters);
+  dict.SetMethod("takeHeapSnapshot", &TakeHeapSnapshot);
 #if defined(OS_POSIX)
   dict.SetMethod("setFdLimit", &base::SetFdLimit);
 #endif
@@ -160,26 +163,6 @@ v8::Local<v8::Value> AtomBindings::GetHeapStatistics(v8::Isolate* isolate) {
 }
 
 // static
-v8::Local<v8::Value> AtomBindings::GetProcessMemoryInfo(v8::Isolate* isolate) {
-  auto metrics = base::ProcessMetrics::CreateCurrentProcessMetrics();
-
-  mate::Dictionary dict = mate::Dictionary::CreateEmpty(isolate);
-  dict.SetHidden("simple", true);
-  dict.Set("workingSetSize",
-           static_cast<double>(metrics->GetWorkingSetSize() >> 10));
-  dict.Set("peakWorkingSetSize",
-           static_cast<double>(metrics->GetPeakWorkingSetSize() >> 10));
-
-  size_t private_bytes, shared_bytes;
-  if (metrics->GetMemoryBytes(&private_bytes, &shared_bytes)) {
-    dict.Set("privateBytes", static_cast<double>(private_bytes >> 10));
-    dict.Set("sharedBytes", static_cast<double>(shared_bytes >> 10));
-  }
-
-  return dict.GetHandle();
-}
-
-// static
 v8::Local<v8::Value> AtomBindings::GetCreationTime(v8::Isolate* isolate) {
   auto timeValue = base::CurrentProcessInfo::CreationTime();
   if (timeValue.is_null()) {
@@ -257,6 +240,17 @@ v8::Local<v8::Value> AtomBindings::GetIOCounters(v8::Isolate* isolate) {
   }
 
   return dict.GetHandle();
+}
+
+// static
+bool AtomBindings::TakeHeapSnapshot(v8::Isolate* isolate,
+                                    const base::FilePath& file_path) {
+  base::ThreadRestrictions::ScopedAllowIO allow_io;
+
+  base::File file(file_path,
+                  base::File::FLAG_CREATE_ALWAYS | base::File::FLAG_WRITE);
+
+  return atom::TakeHeapSnapshot(isolate, &file);
 }
 
 }  // namespace atom

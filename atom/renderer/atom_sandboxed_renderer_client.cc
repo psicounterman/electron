@@ -20,8 +20,8 @@
 #include "chrome/renderer/printing/print_web_view_helper.h"
 #include "content/public/renderer/render_frame.h"
 #include "native_mate/dictionary.h"
-#include "third_party/WebKit/public/web/WebDocument.h"
-#include "third_party/WebKit/public/web/WebKit.h"
+#include "third_party/blink/public/web/blink.h"
+#include "third_party/blink/public/web/web_document.h"
 
 #include "atom/common/node_includes.h"
 #include "atom_natives.h"  // NOLINT: This file is generated with js2c
@@ -30,8 +30,8 @@ namespace atom {
 
 namespace {
 
-const std::string kIpcKey = "ipcNative";
-const std::string kModuleCacheKey = "native-module-cache";
+const char kIpcKey[] = "ipcNative";
+const char kModuleCacheKey[] = "native-module-cache";
 
 bool IsDevTools(content::RenderFrame* render_frame) {
   return render_frame->GetWebFrame()->GetDocument().Url().ProtocolIs(
@@ -153,7 +153,6 @@ void AtomSandboxedRendererClient::InitializeBindings(
   b.SetMethod("getPid", &base::GetCurrentProcId);
   b.SetMethod("getResourcesPath", &NodeBindings::GetHelperResourcesPath);
   b.SetMethod("getHeapStatistics", &AtomBindings::GetHeapStatistics);
-  b.SetMethod("getProcessMemoryInfo", &AtomBindings::GetProcessMemoryInfo);
   b.SetMethod("getSystemMemoryInfo", &AtomBindings::GetSystemMemoryInfo);
   b.SetMethod("getCPUUsage", base::Bind(&AtomBindings::GetCPUUsage,
                                         base::Unretained(metrics_.get())));

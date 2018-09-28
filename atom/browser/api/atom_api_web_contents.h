@@ -5,6 +5,7 @@
 #ifndef ATOM_BROWSER_API_ATOM_API_WEB_CONTENTS_H_
 #define ATOM_BROWSER_API_ATOM_API_WEB_CONTENTS_H_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -249,6 +250,9 @@ class WebContents : public mate::TrackableObject<WebContents>,
   // the specified URL.
   void GrantOriginAccess(const GURL& url);
 
+  bool TakeHeapSnapshot(const base::FilePath& file_path,
+                        const std::string& channel);
+
   // Properties.
   int32_t ID() const;
   v8::Local<v8::Value> Session(v8::Isolate* isolate);
@@ -264,6 +268,9 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void RemoveObserver(ExtendedWebContentsObserver* obs) {
     observers_.RemoveObserver(obs);
   }
+
+  bool EmitNavigationEvent(const std::string& event,
+                           content::NavigationHandle* navigation_handle);
 
  protected:
   WebContents(v8::Isolate* isolate,
@@ -330,7 +337,7 @@ class WebContents : public mate::TrackableObject<WebContents>,
                  const gfx::Rect& selection_rect,
                  int active_match_ordinal,
                  bool final_update) override;
-  bool CheckMediaAccessPermission(content::WebContents* web_contents,
+  bool CheckMediaAccessPermission(content::RenderFrameHost* render_frame_host,
                                   const GURL& security_origin,
                                   content::MediaStreamType type) override;
   void RequestMediaAccessPermission(
@@ -364,6 +371,8 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void DidStartLoading() override;
   void DidStopLoading() override;
   void DidStartNavigation(
+      content::NavigationHandle* navigation_handle) override;
+  void DidRedirectNavigation(
       content::NavigationHandle* navigation_handle) override;
   void DidFinishNavigation(
       content::NavigationHandle* navigation_handle) override;

@@ -9,6 +9,15 @@
 #include "base/strings/utf_string_conversions.h"
 #include "content/common/view_messages.h"
 #include "ui/accelerated_widget_mac/accelerated_widget_mac.h"
+#include "ui/display/screen.h"
+
+namespace {
+
+display::Display GetDisplay() {
+  return display::Screen::GetScreen()->GetDisplayNearestView(nullptr);
+}
+
+}  // namespace
 
 namespace atom {
 
@@ -33,7 +42,7 @@ class MacHelper : public content::BrowserCompositorMacClient,
     return view_->last_frame_root_background_color();
   }
 
-  void BrowserCompositorMacOnBeginFrame() override {}
+  void BrowserCompositorMacOnBeginFrame(base::TimeTicks frame_time) override {}
 
   void OnFrameTokenChanged(uint32_t frame_token) override {
     view_->render_widget_host()->DidProcessFrame(frame_token);
@@ -59,6 +68,8 @@ class MacHelper : public content::BrowserCompositorMacClient,
 
   void DestroyCompositorForShutdown() override {}
 
+  void WasResized() override { view_->render_widget_host()->WasResized(); }
+
  private:
   OffScreenRenderWidgetHostView* view_;
 
@@ -69,17 +80,12 @@ void OffScreenRenderWidgetHostView::SetActive(bool active) {}
 
 void OffScreenRenderWidgetHostView::ShowDefinitionForSelection() {}
 
-bool OffScreenRenderWidgetHostView::SupportsSpeech() const {
-  return false;
-}
-
 void OffScreenRenderWidgetHostView::SpeakSelection() {}
 
-bool OffScreenRenderWidgetHostView::IsSpeaking() const {
-  return false;
+bool OffScreenRenderWidgetHostView::UpdateNSViewAndDisplay() {
+  return browser_compositor_->UpdateNSViewAndDisplay(
+      GetRootLayer()->bounds().size(), GetDisplay());
 }
-
-void OffScreenRenderWidgetHostView::StopSpeaking() {}
 
 bool OffScreenRenderWidgetHostView::ShouldContinueToPauseForFrame() {
   return browser_compositor_->ShouldContinueToPauseForFrame();
@@ -90,7 +96,7 @@ void OffScreenRenderWidgetHostView::CreatePlatformWidget(
   mac_helper_ = new MacHelper(this);
   browser_compositor_.reset(new content::BrowserCompositorMac(
       mac_helper_, mac_helper_, render_widget_host_->is_hidden(), true,
-      AllocateFrameSinkId(is_guest_view_hack)));
+      GetDisplay(), AllocateFrameSinkId(is_guest_view_hack)));
 }
 
 void OffScreenRenderWidgetHostView::DestroyPlatformWidget() {

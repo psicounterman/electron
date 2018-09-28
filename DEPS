@@ -1,16 +1,20 @@
 vars = {
   'chromium_version':
-    '66.0.3359.181',
-  'libchromiumcontent_revision':
-    'f3a3f588281aba034a0f1f85ca3c65eb5a3f7b66',
+    '67.0.3396.99',
   'node_version':
-    '6d1bdd3ebf860ff878a1b5db4fd26fdda3932e21',
+    '9dcbed23f016d3ad081be6ec7fb5122e57862da7',
+
+  'pyyaml_version':
+    '3.12',
 
   'chromium_git':
     'https://chromium.googlesource.com',
 
   'electron_git':
     'https://github.com/electron',
+
+  'yaml_git':
+    'https://github.com/yaml',
 
   'checkout_nacl':
     False,
@@ -23,22 +27,22 @@ vars = {
 deps = {
   'src':
     (Var("chromium_git")) + '/chromium/src.git@' + (Var("chromium_version")),
-  'src/libchromiumcontent':
-    (Var("electron_git")) + '/libchromiumcontent.git@' + (Var("libchromiumcontent_revision")),
   'src/third_party/electron_node':
     (Var("electron_git")) + '/node.git@' + (Var("node_version")),
+  'src/electron/vendor/pyyaml':
+    (Var("yaml_git")) + '/pyyaml.git@' + (Var("pyyaml_version")),
 }
 
 hooks = [
   {
     'action': [
       'python',
-      'src/libchromiumcontent/script/apply-patches',
+      'src/electron/script/apply-patches',
       '--project-root=.',
       '--commit'
     ],
     'pattern':
-      'src/libchromiumcontent',
+      'src/electron',
     'name':
       'patch_chromium'
   },
@@ -61,6 +65,33 @@ hooks = [
     'pattern': 'src/electron/package.json',
     'name': 'electron_npm_deps'
   },
+  {
+    'action': [
+      'python',
+      '-c',
+      'import os; os.chdir("src"); os.chdir("electron"); os.system("git submodule update --init --recursive");',
+    ],
+    'pattern': 'src/electron',
+    'name': 'electron_submodules'
+  },
+  {
+    'action': [
+      'python',
+      '-c',
+      'import os; os.chdir("src"); os.chdir("electron"); os.chdir("vendor"); os.chdir("boto"); os.system("python setup.py build");',
+    ],
+    'pattern': 'src/electron',
+    'name': 'setup_boto',
+  },
+  {
+    'action': [
+      'python',
+      '-c',
+      'import os; os.chdir("src"); os.chdir("electron"); os.chdir("vendor"); os.chdir("requests"); os.system("python setup.py build");',
+    ],
+    'pattern': 'src/electron',
+    'name': 'setup_requests',
+  }
 ]
 
 recursedeps = [

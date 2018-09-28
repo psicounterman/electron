@@ -80,7 +80,7 @@ def main():
   else:
     raise Exception("Invalid current version: " + curr_version)
 
-  if args.new_version == None and args.bump == None and args.stable == False:
+  if args.new_version is None and args.bump is None and not args.stable:
     parser.print_help()
     return 1
 
@@ -96,7 +96,7 @@ def main():
     return 0
 
   with scoped_cwd(SOURCE_ROOT):
-    update_electron_gyp(version, suffix)
+    update_version(version, suffix)
     update_win_rc(version, versions)
     update_version_h(versions, suffix)
     update_info_plist(version)
@@ -115,20 +115,9 @@ def increase_version(versions, index):
   return versions
 
 
-def update_electron_gyp(version, suffix):
-  assert False, "electron.gyp must not be used anymore. We build with GN now."
-
-  pattern = re.compile(" *'version%' *: *'[0-9.]+(-beta[0-9.]*)?(-dev)?"
-    + "(-nightly[0-9.]*)?'")
-  with open('electron.gyp', 'r') as f:
-    lines = f.readlines()
-
-  for i in range(0, len(lines)):
-    if pattern.match(lines[i]):
-      lines[i] = "    'version%': '{0}',\n".format(version + suffix)
-      with open('electron.gyp', 'w') as f:
-        f.write(''.join(lines))
-      return
+def update_version(version, suffix):
+  with open('VERSION', 'w') as f:
+    f.write(version + suffix)
 
 
 def update_win_rc(version, versions):
@@ -169,10 +158,11 @@ def update_version_h(versions, suffix):
       lines[i + 1] = '#define ATOM_MINOR_VERSION {0}\n'.format(versions[1])
       lines[i + 2] = '#define ATOM_PATCH_VERSION {0}\n'.format(versions[2])
 
+      # We do +4 here to avoid the clang format comment
       if (suffix):
-        lines[i + 3] = '#define ATOM_PRE_RELEASE_VERSION {0}\n'.format(suffix)
+        lines[i + 4] = '#define ATOM_PRE_RELEASE_VERSION {0}\n'.format(suffix)
       else:
-        lines[i + 3] = '// #define ATOM_PRE_RELEASE_VERSION\n'
+        lines[i + 4] = '// #define ATOM_PRE_RELEASE_VERSION\n'
 
       with open(version_h, 'w') as f:
         f.write(''.join(lines))
@@ -196,18 +186,19 @@ def update_info_plist(version):
 
 
 def update_package_json(version, suffix):
-  package_json = 'package.json'
-  with open(package_json, 'r') as f:
-    lines = f.readlines()
+  metadata_json_files = ['package.json', 'package-lock.json']
+  for json_file in metadata_json_files:
+    with open(json_file, 'r') as f:
+      lines = f.readlines()
 
-  for i in range(0, len(lines)):
-    line = lines[i];
-    if 'version' in line:
-      lines[i] = '  "version": "{0}",\n'.format(version + suffix)
-      break
+    for i in range(0, len(lines)):
+      line = lines[i];
+      if 'version' in line:
+        lines[i] = '  "version": "{0}",\n'.format(version + suffix)
+        break
 
-  with open(package_json, 'w') as f:
-    f.write(''.join(lines))
+    with open(json_file, 'w') as f:
+      f.write(''.join(lines))
 
 
 def tag_version(version, suffix):

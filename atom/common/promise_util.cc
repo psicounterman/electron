@@ -11,7 +11,6 @@ namespace atom {
 namespace util {
 
 Promise::Promise(v8::Isolate* isolate) {
-  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
   isolate_ = isolate;
   resolver_.Reset(isolate, v8::Promise::Resolver::New(isolate));
 }
@@ -26,7 +25,7 @@ v8::Maybe<bool> Promise::RejectWithErrorMessage(const std::string& string) {
                             mate::ConvertToV8(isolate(), error));
 }
 
-v8::Local<v8::Object> Promise::GetHandle() const {
+v8::Local<v8::Promise> Promise::GetHandle() const {
   return GetInner()->GetPromise();
 }
 

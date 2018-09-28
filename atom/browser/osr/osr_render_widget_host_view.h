@@ -5,6 +5,7 @@
 #ifndef ATOM_BROWSER_OSR_OSR_RENDER_WIDGET_HOST_VIEW_H_
 #define ATOM_BROWSER_OSR_OSR_RENDER_WIDGET_HOST_VIEW_H_
 
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -31,7 +32,7 @@
 #include "content/browser/renderer_host/render_widget_host_impl.h"
 #include "content/browser/renderer_host/render_widget_host_view_base.h"
 #include "content/browser/web_contents/web_contents_view.h"
-#include "third_party/WebKit/public/platform/WebVector.h"
+#include "third_party/blink/public/platform/web_vector.h"
 #include "third_party/skia/include/core/SkBitmap.h"
 #include "ui/base/ime/text_input_client.h"
 #include "ui/compositor/compositor.h"
@@ -89,7 +90,6 @@ class OffScreenRenderWidgetHostView
   void InitAsChild(gfx::NativeView) override;
   void SetSize(const gfx::Size&) override;
   void SetBounds(const gfx::Rect&) override;
-  gfx::Vector2dF GetLastScrollOffset(void) const override;
   gfx::NativeView GetNativeView(void) const override;
   gfx::NativeViewAccessible GetNativeViewAccessible(void) override;
   ui::TextInputClient* GetTextInputClient() override;
@@ -106,16 +106,15 @@ class OffScreenRenderWidgetHostView
   SkColor background_color() const override;
   bool LockMouse(void) override;
   void UnlockMouse(void) override;
+  void TakeFallbackContentFrom(content::RenderWidgetHostView* view) override;
   void SetNeedsBeginFrames(bool needs_begin_frames) override;
   void SetWantsAnimateOnlyBeginFrames() override;
 #if defined(OS_MACOSX)
   void SetActive(bool active) override;
   void ShowDefinitionForSelection() override;
-  bool SupportsSpeech() const override;
   void SpeakSelection() override;
-  bool IsSpeaking() const override;
   bool ShouldContinueToPauseForFrame() override;
-  void StopSpeaking() override;
+  bool UpdateNSViewAndDisplay();
 #endif  // defined(OS_MACOSX)
 
   // content::RenderWidgetHostViewBase:
@@ -149,7 +148,6 @@ class OffScreenRenderWidgetHostView
                    content::RenderWidgetHostViewGuest*) override;
   gfx::Vector2d GetOffsetFromRootSurface() override;
   gfx::Rect GetBoundsInRootWindow(void) override;
-  content::RenderWidgetHostImpl* GetRenderWidgetHostImpl() const override;
   viz::SurfaceId GetCurrentSurfaceId() const override;
   void ImeCompositionRangeChanged(const gfx::Range&,
                                   const std::vector<gfx::Rect>&) override;

@@ -4,6 +4,8 @@
 
 #include "atom/browser/atom_browser_main_parts.h"
 
+#include <utility>
+
 #include "atom/browser/api/atom_api_app.h"
 #include "atom/browser/api/trackable_object.h"
 #include "atom/browser/atom_browser_client.h"
@@ -144,7 +146,7 @@ void AtomBrowserMainParts::PostEarlyInitialization() {
 
   // Enable support for v8 inspector
   node_debugger_.reset(new NodeDebugger(env));
-  node_debugger_->Start(js_env_->platform());
+  node_debugger_->Start();
 
   // Add Electron extended APIs.
   atom_bindings_->BindTo(js_env_->isolate(), env->process_object());

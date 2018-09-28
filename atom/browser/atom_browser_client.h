@@ -6,6 +6,7 @@
 #define ATOM_BROWSER_ATOM_BROWSER_CLIENT_H_
 
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -45,6 +46,9 @@ class AtomBrowserClient : public brightray::BrowserClient,
   // Custom schemes to be registered to handle service worker.
   static void SetCustomServiceWorkerSchemes(
       const std::vector<std::string>& schemes);
+
+  std::vector<std::unique_ptr<content::NavigationThrottle>>
+  CreateThrottlesForNavigation(content::NavigationHandle* handle) override;
 
  protected:
   // content::ContentBrowserClient:
@@ -122,6 +126,14 @@ class AtomBrowserClient : public brightray::BrowserClient,
   void RenderProcessExited(content::RenderProcessHost* host,
                            base::TerminationStatus status,
                            int exit_code) override;
+  bool HandleExternalProtocol(
+      const GURL& url,
+      content::ResourceRequestInfo::WebContentsGetter web_contents_getter,
+      int child_id,
+      content::NavigationUIData* navigation_data,
+      bool is_main_frame,
+      ui::PageTransition page_transition,
+      bool has_user_gesture) override;
 
  private:
   struct ProcessPreferences {

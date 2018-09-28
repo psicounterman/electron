@@ -6,6 +6,7 @@
 #define ATOM_BROWSER_ATOM_PERMISSION_MANAGER_H_
 
 #include <map>
+#include <memory>
 #include <vector>
 
 #include "base/callback.h"
@@ -71,6 +72,10 @@ class AtomPermissionManager : public content::PermissionManager {
       const base::DictionaryValue* details,
       const base::Callback<
           void(const std::vector<blink::mojom::PermissionStatus>&)>& callback);
+  blink::mojom::PermissionStatus GetPermissionStatusForFrame(
+      content::PermissionType permission,
+      content::RenderFrameHost* render_frame_host,
+      const GURL& requesting_origin) override;
 
   bool CheckPermissionWithDetails(content::PermissionType permission,
                                   content::RenderFrameHost* render_frame_host,

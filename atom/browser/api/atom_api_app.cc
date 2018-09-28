@@ -10,6 +10,7 @@
 #include "atom/browser/api/atom_api_menu.h"
 #include "atom/browser/api/atom_api_session.h"
 #include "atom/browser/api/atom_api_web_contents.h"
+#include "atom/browser/api/gpuinfo_manager.h"
 #include "atom/browser/atom_browser_context.h"
 #include "atom/browser/atom_browser_main_parts.h"
 #include "atom/browser/login_handler.h"
@@ -548,6 +549,7 @@ App::App(v8::Isolate* isolate) {
   static_cast<AtomBrowserClient*>(AtomBrowserClient::Get())->set_delegate(this);
   Browser::Get()->AddObserver(this);
   content::GpuDataManager::GetInstance()->AddObserver(this);
+
   base::ProcessId pid = base::GetCurrentProcId();
   auto process_metric = std::make_unique<atom::ProcessMetric>(
       content::PROCESS_TYPE_BROWSER, pid,
@@ -1112,30 +1114,11 @@ std::vector<mate::Dictionary> App::GetAppMetrics(v8::Isolate* isolate) {
 
   for (const auto& process_metric : app_metrics_) {
     mate::Dictionary pid_dict = mate::Dictionary::CreateEmpty(isolate);
-    mate::Dictionary memory_dict = mate::Dictionary::CreateEmpty(isolate);
     mate::Dictionary cpu_dict = mate::Dictionary::CreateEmpty(isolate);
 
     pid_dict.SetHidden("simple", true);
-    memory_dict.SetHidden("simple", true);
     cpu_dict.SetHidden("simple", true);
 
-    memory_dict.Set(
-        "workingSetSize",
-        static_cast<double>(
-            process_metric.second->metrics->GetWorkingSetSize() >> 10));
-    memory_dict.Set(
-        "peakWorkingSetSize",
-        static_cast<double>(
-            process_metric.second->metrics->GetPeakWorkingSetSize() >> 10));
-
-    size_t private_bytes, shared_bytes;
-    if (process_metric.second->metrics->GetMemoryBytes(&private_bytes,
-                                                       &shared_bytes)) {
-      memory_dict.Set("privateBytes", static_cast<double>(private_bytes >> 10));
-      memory_dict.Set("sharedBytes", static_cast<double>(shared_bytes >> 10));
-    }
-
-    pid_dict.Set("memory", memory_dict);
     cpu_dict.Set(
         "percentCPUUsage",
         process_metric.second->metrics->GetPlatformIndependentCPUUsage() /
@@ -1165,6 +1148,25 @@ v8::Local<v8::Value> App::GetGPUFeatureStatus(v8::Isolate* isolate) {
   auto status = content::GetFeatureStatus();
   base::DictionaryValue temp;
   return mate::ConvertToV8(isolate, status ? *status : temp);
+}
+
+v8::Local<v8::Promise> App::GetGPUInfo(v8::Isolate* isolate,
+                                       const std::string& info_type) {
+  auto* const gpu_data_manager = content::GpuDataManagerImpl::GetInstance();
+  scoped_refptr<util::Promise> promise = new util::Promise(isolate);
+  if ((info_type != "basic" && info_type != "complete") ||
+      !gpu_data_manager->GpuAccessAllowed(nullptr)) {
+    promise->Reject("Error fetching GPU Info");
+    return promise->GetHandle();
+  }
+
+  auto* const info_mgr = GPUInfoManager::GetInstance();
+  if (info_type == "complete") {
+    info_mgr->FetchCompleteInfo(promise);
+  } else /* (info_type == "basic") */ {
+    info_mgr->FetchBasicInfo(promise);
+  }
+  return promise->GetHandle();
 }
 
 void App::EnableMixedSandbox(mate::Arguments* args) {
@@ -1289,6 +1291,7 @@ void App::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("getFileIcon", &App::GetFileIcon)
       .SetMethod("getAppMetrics", &App::GetAppMetrics)
       .SetMethod("getGPUFeatureStatus", &App::GetGPUFeatureStatus)
+      .SetMethod("getGPUInfo", &App::GetGPUInfo)
 // TODO(juturu): Remove in 2.0, deprecate before then with warnings
 #if defined(OS_MACOSX)
       .SetMethod("moveToApplicationsFolder", &App::MoveToApplicationsFolder)

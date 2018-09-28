@@ -8,11 +8,15 @@
 #include <shlobj.h>
 #endif
 
+#include <memory>
+#include <utility>
+
 #include "atom/browser/api/atom_api_app.h"
 #include "atom/browser/api/atom_api_protocol.h"
 #include "atom/browser/api/atom_api_web_contents.h"
 #include "atom/browser/atom_browser_context.h"
 #include "atom/browser/atom_browser_main_parts.h"
+#include "atom/browser/atom_navigation_throttle.h"
 #include "atom/browser/atom_quota_permission_context.h"
 #include "atom/browser/atom_resource_dispatcher_host_delegate.h"
 #include "atom/browser/atom_speech_recognition_manager_delegate.h"
@@ -24,12 +28,15 @@
 #include "atom/browser/window_list.h"
 #include "atom/common/google_api_key.h"
 #include "atom/common/options_switches.h"
+#include "atom/common/platform_util.h"
 #include "base/command_line.h"
 #include "base/environment.h"
 #include "base/files/file_util.h"
+#include "base/no_destructor.h"
 #include "base/stl_util.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
+#include "base/strings/utf_string_conversions.h"
 #include "chrome/browser/printing/printing_message_filter.h"
 #include "chrome/browser/speech/tts_message_filter.h"
 #include "content/public/browser/browser_ppapi_host.h"
@@ -45,6 +52,7 @@
 #include "content/public/common/url_constants.h"
 #include "content/public/common/web_preferences.h"
 #include "device/geolocation/public/cpp/location_provider.h"
+#include "net/base/escape.h"
 #include "net/ssl/ssl_cert_request_info.h"
 #include "ppapi/host/ppapi_host.h"
 #include "services/network/public/cpp/resource_request_body.h"
@@ -79,7 +87,7 @@ namespace {
 bool g_suppress_renderer_process_restart = false;
 
 // Custom schemes to be registered to handle service worker.
-std::string g_custom_service_worker_schemes = "";
+base::NoDestructor<std::string> g_custom_service_worker_schemes;
 
 bool IsSameWebSite(content::BrowserContext* browser_context,
                    const GURL& src_url,
@@ -102,7 +110,7 @@ void AtomBrowserClient::SuppressRendererProcessRestartForOnce() {
 
 void AtomBrowserClient::SetCustomServiceWorkerSchemes(
     const std::vector<std::string>& schemes) {
-  g_custom_service_worker_schemes = base::JoinString(schemes, ",");
+  *g_custom_service_worker_schemes = base::JoinString(schemes, ",");
 }
 
 AtomBrowserClient::AtomBrowserClient() {}
@@ -323,9 +331,9 @@ void AtomBrowserClient::AppendExtraCommandLineSwitches(
                                  arraysize(kCommonSwitchNames));
 
   // The registered service worker schemes.
-  if (!g_custom_service_worker_schemes.empty())
+  if (!g_custom_service_worker_schemes->empty())
     command_line->AppendSwitchASCII(switches::kRegisterServiceWorkerSchemes,
-                                    g_custom_service_worker_schemes);
+                                    *g_custom_service_worker_schemes);
 
 #if defined(OS_WIN)
   // Append --app-user-model-id.
@@ -559,6 +567,59 @@ void AtomBrowserClient::RenderProcessExited(content::RenderProcessHost* host,
     }
     render_process_host_pids_.erase(host_pid);
   }
+}
+
+void OnOpenExternal(const GURL& escaped_url, bool allowed) {
+  if (allowed)
+    platform_util::OpenExternal(
+#if defined(OS_WIN)
+        base::UTF8ToUTF16(escaped_url.spec()),
+#else
+        escaped_url,
+#endif
+        true);
+}
+
+void HandleExternalProtocolInUI(
+    const GURL& url,
+    const content::ResourceRequestInfo::WebContentsGetter& web_contents_getter,
+    bool has_user_gesture) {
+  content::WebContents* web_contents = web_contents_getter.Run();
+  if (!web_contents)
+    return;
+
+  auto* permission_helper =
+      WebContentsPermissionHelper::FromWebContents(web_contents);
+  if (!permission_helper)
+    return;
+
+  GURL escaped_url(net::EscapeExternalHandlerValue(url.spec()));
+  auto callback = base::Bind(&OnOpenExternal, escaped_url);
+  permission_helper->RequestOpenExternalPermission(callback, has_user_gesture,
+                                                   url);
+}
+
+bool AtomBrowserClient::HandleExternalProtocol(
+    const GURL& url,
+    content::ResourceRequestInfo::WebContentsGetter web_contents_getter,
+    int child_id,
+    content::NavigationUIData* navigation_data,
+    bool is_main_frame,
+    ui::PageTransition page_transition,
+    bool has_user_gesture) {
+  BrowserThread::PostTask(
+      BrowserThread::UI, FROM_HERE,
+      base::BindOnce(&HandleExternalProtocolInUI, url, web_contents_getter,
+                     has_user_gesture));
+  return true;
+}
+
+std::vector<std::unique_ptr<content::NavigationThrottle>>
+AtomBrowserClient::CreateThrottlesForNavigation(
+    content::NavigationHandle* handle) {
+  std::vector<std::unique_ptr<content::NavigationThrottle>> throttles;
+  throttles.push_back(std::make_unique<AtomNavigationThrottle>(handle));
+  return throttles;
 }
 
 }  // namespace atom
