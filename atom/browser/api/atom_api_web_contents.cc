@@ -807,8 +807,10 @@ void WebContents::DidChangeThemeColor(SkColor theme_color) {
 
 void WebContents::DocumentLoadedInFrame(
     content::RenderFrameHost* render_frame_host) {
-  if (!render_frame_host->GetParent())
+  if (!render_frame_host->GetParent()) {
+    is_dom_ready_ = true;
     Emit("dom-ready");
+  }
 }
 
 void WebContents::DidFinishLoad(content::RenderFrameHost* render_frame_host,
@@ -835,6 +837,7 @@ void WebContents::DidFailLoad(content::RenderFrameHost* render_frame_host,
 }
 
 void WebContents::DidStartLoading() {
+  is_dom_ready_ = false;
   Emit("did-start-loading");
 }
 
@@ -1406,6 +1409,10 @@ void WebContents::SetAudioMuted(bool muted) {
 
 bool WebContents::IsAudioMuted() {
   return web_contents()->IsAudioMuted();
+}
+
+bool WebContents::IsDOMReady() const {
+  return is_dom_ready_;
 }
 
 void WebContents::Print(mate::Arguments* args) {
@@ -2003,6 +2010,7 @@ void WebContents::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("setIgnoreMenuShortcuts", &WebContents::SetIgnoreMenuShortcuts)
       .SetMethod("setAudioMuted", &WebContents::SetAudioMuted)
       .SetMethod("isAudioMuted", &WebContents::IsAudioMuted)
+      .SetMethod("isDomReady", &WebContents::IsDOMReady)
       .SetMethod("undo", &WebContents::Undo)
       .SetMethod("redo", &WebContents::Redo)
       .SetMethod("cut", &WebContents::Cut)

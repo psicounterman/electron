@@ -4,7 +4,7 @@
     'product_name%': 'Electron',
     'company_name%': 'GitHub, Inc',
     'company_abbr%': 'github',
-    'version%': '3.90.2',
+    'version%': '3.90.5',
     'js2c_input_dir': '<(SHARED_INTERMEDIATE_DIR)/js2c',
   },
   'includes': [
@@ -253,6 +253,18 @@
               ],
             },
           ],
+          'link_settings': {
+            'ldflags': [
+              # Build as Position-Independent Executable to mitigate exploitations.
+              '-pie',
+              # Enable BIND_NOW to prevent GOT overwrite attacks.
+              '-Wl,-z,now',
+            ],
+          },
+          'cflags_cc': [
+            # Needed for PIE
+            '-fPIC',
+          ]
         }],  # OS=="linux"
       ],
     },  # target <(project_name)
@@ -441,6 +453,7 @@
           # Required settings of using breakpad.
           'cflags_cc': [
             '-Wno-empty-body',
+            '-fPIC',
           ],
           'include_dirs': [
             'vendor/breakpad/src',
